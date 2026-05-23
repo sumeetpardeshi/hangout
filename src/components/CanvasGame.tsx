@@ -1,11 +1,29 @@
 import React, { useRef, useState, useEffect } from "react";
-import { ArrowLeft, Play, RotateCcw, Volume2, VolumeX, Award, Shield, Trophy, User, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Play,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  Award,
+  Shield,
+  Trophy,
+  User,
+  ChevronDown,
+  ChevronUp,
+  PanelRightClose,
+  PanelRightOpen,
+  Maximize2,
+} from "lucide-react";
 import { CustomGameConfig, Participant, SpawnItem } from "../types";
+import { loadUiPrefs, saveUiPrefs } from "../lib/hangoutStorage";
 
 interface CanvasGameProps {
   gameConfig: CustomGameConfig;
   participants: Participant[];
   onBack: () => void;
+  onResetParty?: () => void;
+  onScoresChange?: (participants: Participant[]) => void;
 }
 
 interface Particle {
@@ -196,7 +214,23 @@ const renderCodexItemSvg = (item: SpawnItem) => {
   );
 };
 
-export default function CanvasGame({ gameConfig, participants, onBack }: CanvasGameProps) {
+export default function CanvasGame({
+  gameConfig,
+  participants,
+  onBack,
+  onResetParty,
+  onScoresChange,
+}: CanvasGameProps) {
+  const initialUi = loadUiPrefs();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(initialUi.sidebarCollapsed);
+  const [cabinetOpen, setCabinetOpen] = useState(initialUi.cabinetOpen);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(initialUi.leaderboardOpen);
+  const [codexOpen, setCodexOpen] = useState(initialUi.codexOpen);
+  const [playersBarCollapsed, setPlayersBarCollapsed] = useState(initialUi.playersBarCollapsed);
+
+  function updateUiPrefs(prefs: Partial<typeof initialUi>) {
+    saveUiPrefs(prefs);
+  }
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -208,6 +242,16 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
   const [scoreList, setScoreList] = useState<Participant[]>(participants);
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
   const currentPlayer = scoreList[currentPlayerIdx] || scoreList[0];
+
+  const onScoresChangeRef = useRef(onScoresChange);
+  onScoresChangeRef.current = onScoresChange;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      onScoresChangeRef.current?.(scoreList);
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [scoreList]);
 
   // Visual model preferences (AI Hand-drawn Vector Cartoon vs Webcam Crop)
   const [avatarStyle, setAvatarStyle] = useState<"cartoon" | "photo">("cartoon");
@@ -1519,7 +1563,7 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-4 md:p-6" id="arcade-challenge-main">
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6" id="arcade-challenge-main">
       {/* Top HUD Controller */}
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
@@ -1533,37 +1577,77 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
           </button>
           <div className="text-left">
             <span className="text-[10px] font-mono font-bold uppercase text-amber-600 block">Current Game Lounge</span>
-            <h1 className="text-xl font-extrabold text-slate-800 uppercase tracking-tight">{gameConfig.gameTitle}</h1>
+            <h1 className="text-xl md:text-2xl font-extrabold text-slate-800 uppercase tracking-tight">{gameConfig.gameTitle}</h1>
           </div>
         </div>
 
-        {/* Choice Pills for Look style and Turn-based players tabs */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Style Selector Toggle */}
-          <div className="flex gap-0.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
-            <button
-              onClick={() => setAvatarStyle("cartoon")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                avatarStyle === "cartoon"
-                  ? "bg-indigo-600 text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              ✨ AI Cartoon
-            </button>
-            <button
-              onClick={() => setAvatarStyle("photo")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
-                avatarStyle === "photo"
-                  ? "bg-slate-900 text-white shadow-xs"
-                  : "text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              📸 Real Camera Mode
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const next = !sidebarCollapsed;
+              setSidebarCollapsed(next);
+              updateUiPrefs({ sidebarCollapsed: next });
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition inline-flex items-center gap-1.5"
+            title={sidebarCollapsed ? "Show arcade cabinet" : "Focus on game screen"}
+          >
+            {sidebarCollapsed ? <PanelRightOpen className="w-4 h-4" /> : <PanelRightClose className="w-4 h-4" />}
+            {sidebarCollapsed ? "Show Cabinet" : "Focus Mode"}
+          </button>
 
-          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          {onResetParty && (
+            <button
+              type="button"
+              onClick={onResetParty}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-100 transition inline-flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> Reset All
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Style + player index row */}
+      <div className="flex flex-wrap items-center gap-3 mb-5">
+        <div className="flex gap-0.5 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setAvatarStyle("cartoon")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              avatarStyle === "cartoon"
+                ? "bg-indigo-600 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            ✨ AI Cartoon
+          </button>
+          <button
+            onClick={() => setAvatarStyle("photo")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer ${
+              avatarStyle === "photo"
+                ? "bg-slate-900 text-white shadow-xs"
+                : "text-slate-600 hover:bg-slate-200"
+            }`}
+          >
+            📸 Real Camera Mode
+          </button>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = !playersBarCollapsed;
+            setPlayersBarCollapsed(next);
+            updateUiPrefs({ playersBarCollapsed: next });
+          }}
+          className="px-2.5 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 hover:bg-slate-200 transition inline-flex items-center gap-1"
+        >
+          {playersBarCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+          Players ({scoreList.length})
+        </button>
+
+        {!playersBarCollapsed && (
+          <div className="flex flex-wrap gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
             {scoreList.map((player, idx) => (
               <button
                 key={player.id}
@@ -1588,12 +1672,12 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
               </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Core Canvas Play Screen (8 Cols) */}
-        <div className="lg:col-span-8 space-y-4">
+        {/* Core Canvas Play Screen */}
+        <div className={`space-y-4 ${sidebarCollapsed ? "lg:col-span-12" : "lg:col-span-8"}`}>
           <div className="bg-slate-950 p-3 rounded-3xl border-4 border-slate-800 shadow-xl relative overflow-hidden flex flex-col items-center">
             
             {/* IN-GAME TOP BAR HUD */}
@@ -1633,7 +1717,7 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
             {/* THE RENDERING CANVAS FRAME CONTAINER */}
             <div
               ref={containerRef}
-              className="w-full relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3] max-h-[500px]"
+              className="w-full relative bg-slate-900 rounded-2xl overflow-hidden aspect-[4/3] min-h-[min(58vh,520px)] lg:min-h-[min(68vh,680px)]"
             >
               <canvas
                 ref={canvasRef}
@@ -1927,18 +2011,32 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
           </p>
         </div>
 
-        {/* Gathering Lounge Scoreboard & Custom Item Directory (4 Cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Gathering Lounge Scoreboard & Custom Item Directory */}
+        {!sidebarCollapsed && (
+        <div className="lg:col-span-4 space-y-3">
           {/* Retro Arcade Machine Selection Panel */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-left space-y-3">
-            <div>
-              <span className="text-[10px] font-mono font-bold uppercase text-indigo-600 block">Arcade Cabinet</span>
-              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 pb-1">
-                🎮 Switch Game Engine
-              </h3>
-              <p className="text-[10px] text-slate-400 font-medium">Boot any playable retro console model instantly!</p>
-            </div>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm text-left overflow-hidden">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !cabinetOpen;
+                setCabinetOpen(next);
+                updateUiPrefs({ cabinetOpen: next });
+              }}
+              className="w-full flex items-center justify-between gap-2 p-4 hover:bg-slate-50 transition text-left"
+            >
+              <div>
+                <span className="text-[10px] font-mono font-bold uppercase text-indigo-600 block">Arcade Cabinet</span>
+                <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                  🎮 Switch Game Engine
+                </h3>
+              </div>
+              {cabinetOpen ? <ChevronUp className="w-4 h-4 text-slate-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
+            </button>
 
+            {cabinetOpen && (
+            <div className="px-4 pb-4 space-y-2 border-t border-slate-50">
+            <p className="text-[10px] text-slate-400 font-medium pt-2">Boot any playable retro console model instantly!</p>
             <div className="grid grid-cols-1 gap-2">
               {[
                 {
@@ -2008,15 +2106,29 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
                 );
               })}
             </div>
+            </div>
+            )}
           </div>
 
           {/* Party Leaderboard */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm text-left">
-            <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 border-b border-rose-50 pb-2.5 mb-3">
-              <Award className="w-4 h-4 text-amber-500" /> Gathering High Scores
-            </h3>
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm text-left overflow-hidden">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !leaderboardOpen;
+                setLeaderboardOpen(next);
+                updateUiPrefs({ leaderboardOpen: next });
+              }}
+              className="w-full flex items-center justify-between gap-2 p-4 hover:bg-slate-50 transition text-left"
+            >
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                <Award className="w-4 h-4 text-amber-500" /> Gathering High Scores
+              </h3>
+              {leaderboardOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </button>
 
-            <div className="space-y-2">
+            {leaderboardOpen && (
+            <div className="px-4 pb-4 space-y-2 border-t border-slate-50">
               {[...scoreList].sort((a,b) => b.score - a.score).map((player, idx) => (
                 <div
                   key={player.id}
@@ -2037,21 +2149,34 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           {/* Fall Spawners Codex directory */}
-          <div className="bg-slate-50 border border-slate-150 p-5 rounded-2xl text-left shadow-2xs">
-            <div className="mb-3.5">
-              <span className="text-[10px] font-mono font-bold text-indigo-600 block uppercase tracking-wider">Item Dictionary</span>
-              <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 pt-0.5">
-                💎 Active Item Codex
-              </h4>
-              <p className="text-[10px] text-slate-400 font-medium font-semibold leading-normal">
-                Identify premium capsule characteristics and values instantly via active border glows!
-              </p>
-            </div>
+          <div className="bg-slate-50 border border-slate-150 rounded-2xl text-left shadow-2xs overflow-hidden">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !codexOpen;
+                setCodexOpen(next);
+                updateUiPrefs({ codexOpen: next });
+              }}
+              className="w-full flex items-center justify-between gap-2 p-4 hover:bg-slate-100/80 transition text-left"
+            >
+              <div>
+                <span className="text-[10px] font-mono font-bold text-indigo-600 block uppercase tracking-wider">Item Dictionary</span>
+                <h4 className="text-sm font-black text-slate-800 flex items-center gap-1.5 pt-0.5">
+                  💎 Active Item Codex ({gameConfig.spawnItems.length})
+                </h4>
+              </div>
+              {codexOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+            </button>
 
-            <div className="space-y-3">
+            {codexOpen && (
+            <div className="px-4 pb-4 space-y-3 border-t border-slate-200/80 max-h-[280px] overflow-y-auto">
+              <p className="text-[10px] text-slate-400 font-medium pt-2">
+                Identify premium capsule characteristics and values instantly!
+              </p>
               {gameConfig.spawnItems.map((item, idx) => {
                 const isHazard = item.type === "hazard";
                 const isPowerUp = item.type === "powerup";
@@ -2104,9 +2229,17 @@ export default function CanvasGame({ gameConfig, participants, onBack }: CanvasG
                 );
               })}
             </div>
+            )}
           </div>
         </div>
+        )}
       </div>
+
+      {sidebarCollapsed && (
+        <p className="text-center text-[10px] text-slate-400 font-mono mt-2 flex items-center justify-center gap-1">
+          <Maximize2 className="w-3 h-3" /> Focus mode — game screen expanded. Tap Show Cabinet for engines & codex.
+        </p>
+      )}
     </div>
   );
 }

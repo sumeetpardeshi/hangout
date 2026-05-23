@@ -1,10 +1,16 @@
-import React, { useState } from "react";
-import { Sparkles, Play, Compass, MapPin, Smile, Camera, Users, Award, ShieldAlert, Laptop, Radio } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Sparkles, Play, Compass, Smile, Camera, RotateCcw, History } from "lucide-react";
 import CameraCapture from "./components/CameraCapture";
 import VibeVisualizer from "./components/VibeVisualizer";
 import CanvasGame from "./components/CanvasGame";
 import { VibeAnalysisResult } from "./types";
 import { cropFaceFromImage } from "./lib/cropHelper";
+import {
+  loadSession,
+  saveSession,
+  clearSession,
+  type HangoutPersistedSession,
+} from "./lib/hangoutStorage";
 
 type AppStage = "landing" | "capture" | "analysing" | "reveal" | "gameplay";
 
@@ -16,6 +22,8 @@ export default function App() {
   const [analysisResult, setAnalysisResult] = useState<VibeAnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [savedSessionPreview, setSavedSessionPreview] = useState<HangoutPersistedSession | null>(null);
 
   const [streamProgress, setStreamProgress] = useState<{
     step: "init" | "agent1" | "agent2" | "agent3" | "agent4" | "error" | "complete";
@@ -32,6 +40,32 @@ export default function App() {
     constructorResult: null,
     finalPayload: null,
   });
+
+  useEffect(() => {
+    setSavedSessionPreview(loadSession());
+  }, []);
+
+  const persistSession = useCallback(
+    (result: VibeAnalysisResult, sessionStage: "reveal" | "gameplay", sessionLocation = location) => {
+      saveSession({
+        analysisResult: result,
+        location: sessionLocation,
+        stage: sessionStage,
+      });
+      setSavedSessionPreview(loadSession());
+    },
+    [location]
+  );
+
+  const handleScoresChange = useCallback(
+    (updatedParticipants: VibeAnalysisResult["participants"]) => {
+      if (!analysisResult) return;
+      const next = { ...analysisResult, participants: updatedParticipants };
+      setAnalysisResult(next);
+      persistSession(next, "gameplay");
+    },
+    [analysisResult, persistSession]
+  );
 
   // Transition: Start Hangout
   const handleStartHangout = () => {
@@ -150,6 +184,12 @@ export default function App() {
             }
 
             setAnalysisResult(vibeData);
+            saveSession({
+              analysisResult: vibeData,
+              location: gpsLocation,
+              stage: "reveal",
+            });
+            setSavedSessionPreview(loadSession());
             setStreamProgress((prev) => ({
               ...prev,
               step: "complete",
@@ -176,10 +216,25 @@ export default function App() {
   const handleLaunchGame = () => {
     if (analysisResult) {
       setStage("gameplay");
+      persistSession(analysisResult, "gameplay");
     }
   };
 
-  const handleReset = () => {
+  const handleResumeSession = () => {
+    const saved = loadSession();
+    if (!saved) return;
+    setAnalysisResult(saved.analysisResult);
+    setLocation(saved.location);
+    setError(null);
+    setStage(saved.stage);
+  };
+
+  const handleReset = (skipConfirm = false) => {
+    if (!skipConfirm && !window.confirm("Clear this hangout and delete saved game assets? You'll start from scratch.")) {
+      return;
+    }
+    clearSession();
+    setSavedSessionPreview(null);
     setPhotos([]);
     setLocation(null);
     setAnalysisResult(null);
@@ -205,13 +260,14 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
-            {stage !== "landing" && (
+            {(stage !== "landing" || savedSessionPreview) && (
               <button
                 type="button"
-                onClick={handleReset}
-                className="text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100/80 px-3 py-1.5 rounded-lg border border-rose-100/50 transition"
+                onClick={() => handleReset()}
+                className="text-xs font-bold text-rose-500 hover:text-rose-600 bg-rose-50 hover:bg-rose-100/80 px-3 py-1.5 rounded-lg border border-rose-100/50 transition inline-flex items-center gap-1"
               >
-                Reset Party
+                <RotateCcw className="w-3.5 h-3.5" />
+                {savedSessionPreview ? "Reset & Clear Save" : "Reset Party"}
               </button>
             )}
             <div className="text-[10px] text-slate-400 font-mono font-bold hidden sm:block">
@@ -267,8 +323,8 @@ export default function App() {
               </div>
             </div>
 
-            {/* Trigger Button */}
-            <div className="pt-4">
+            {/* Trigger Buttons */}
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 type="button"
                 id="start-hangout-landing-trigger"
@@ -277,6 +333,24 @@ export default function App() {
               >
                 <Play className="w-5 h-5 fill-white" /> Start a Hangout!
               </button>
+
+              {savedSessionPreview && (
+                <button
+                  type="button"
+                  onClick={handleResumeSession}
+                  className="bg-white hover:bg-slate-50 text-slate-800 font-black px-8 py-5 rounded-2xl text-lg transition duration-200 shadow-md border-2 border-indigo-200 inline-flex flex-col items-start gap-0.5 text-left sm:min-w-[240px]"
+                >
+                  <span className="inline-flex items-center gap-2 text-indigo-600 text-sm">
+                    <History className="w-4 h-4" /> Resume Last Hangout
+                  </span>
+                  <span className="text-base font-extrabold truncate max-w-[220px]">
+                    {savedSessionPreview.analysisResult.gameConfig.gameTitle}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400 font-normal">
+                    {savedSessionPreview.analysisResult.participants.length} players · saved locally
+                  </span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -315,6 +389,8 @@ export default function App() {
             gameConfig={analysisResult.gameConfig}
             participants={analysisResult.participants}
             onBack={() => setStage("reveal")}
+            onResetParty={() => handleReset(true)}
+            onScoresChange={handleScoresChange}
           />
         )}
       </main>
