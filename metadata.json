@@ -1,0 +1,6 @@
+{
+  "name": "Hangout",
+  "description": "An instant AI game creator that analyzes friends' selfies and location to generate a customized HTML5 Canvas mini-game.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
