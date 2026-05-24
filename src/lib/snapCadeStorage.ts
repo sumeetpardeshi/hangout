@@ -3,7 +3,7 @@ import { VibeAnalysisResult, Participant } from "../types";
 const SESSION_KEY = "hangout-session-v1";
 const UI_KEY = "hangout-ui-v1";
 
-export interface HangoutPersistedSession {
+export interface SnapCadePersistedSession {
   version: 1;
   savedAt: string;
   analysisResult: VibeAnalysisResult;
@@ -11,7 +11,7 @@ export interface HangoutPersistedSession {
   stage: "reveal" | "gameplay";
 }
 
-export interface HangoutUiPrefs {
+export interface SnapCadeUiPrefs {
   sidebarCollapsed: boolean;
   cabinetOpen: boolean;
   leaderboardOpen: boolean;
@@ -19,7 +19,7 @@ export interface HangoutUiPrefs {
   playersBarCollapsed: boolean;
 }
 
-const defaultUiPrefs: HangoutUiPrefs = {
+const defaultUiPrefs: SnapCadeUiPrefs = {
   sidebarCollapsed: false,
   cabinetOpen: true,
   leaderboardOpen: true,
@@ -41,11 +41,11 @@ function trimHeavyAssets(result: VibeAnalysisResult): VibeAnalysisResult {
   };
 }
 
-export function loadSession(): HangoutPersistedSession | null {
+export function loadSession(): SnapCadePersistedSession | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as HangoutPersistedSession;
+    const parsed = JSON.parse(raw) as SnapCadePersistedSession;
     if (parsed?.version !== 1 || !parsed.analysisResult?.gameConfig) return null;
     return parsed;
   } catch {
@@ -53,14 +53,14 @@ export function loadSession(): HangoutPersistedSession | null {
   }
 }
 
-export function saveSession(session: Omit<HangoutPersistedSession, "version" | "savedAt">): boolean {
-  const payload: HangoutPersistedSession = {
+export function saveSession(session: Omit<SnapCadePersistedSession, "version" | "savedAt">): boolean {
+  const payload: SnapCadePersistedSession = {
     version: 1,
     savedAt: new Date().toISOString(),
     ...session,
   };
 
-  const tryWrite = (data: HangoutPersistedSession) => {
+  const tryWrite = (data: SnapCadePersistedSession) => {
     localStorage.setItem(SESSION_KEY, JSON.stringify(data));
   };
 
@@ -72,7 +72,7 @@ export function saveSession(session: Omit<HangoutPersistedSession, "version" | "
       err instanceof DOMException &&
       (err.name === "QuotaExceededError" || err.code === 22);
     if (!isQuota) {
-      console.warn("Failed to save hangout session:", err);
+      console.warn("Failed to save SnapCade session:", err);
       return false;
     }
   }
@@ -84,7 +84,7 @@ export function saveSession(session: Omit<HangoutPersistedSession, "version" | "
     });
     return true;
   } catch (err) {
-    console.warn("Failed to save trimmed hangout session:", err);
+    console.warn("Failed to save trimmed SnapCade session:", err);
     return false;
   }
 }
@@ -109,7 +109,7 @@ export function hasSavedSession(): boolean {
   return loadSession() !== null;
 }
 
-export function loadUiPrefs(): HangoutUiPrefs {
+export function loadUiPrefs(): SnapCadeUiPrefs {
   try {
     const raw = localStorage.getItem(UI_KEY);
     if (!raw) return defaultUiPrefs;
@@ -119,7 +119,7 @@ export function loadUiPrefs(): HangoutUiPrefs {
   }
 }
 
-export function saveUiPrefs(prefs: Partial<HangoutUiPrefs>): void {
+export function saveUiPrefs(prefs: Partial<SnapCadeUiPrefs>): void {
   const next = { ...loadUiPrefs(), ...prefs };
   localStorage.setItem(UI_KEY, JSON.stringify(next));
 }

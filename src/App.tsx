@@ -9,8 +9,8 @@ import {
   loadSession,
   saveSession,
   clearSession,
-  type HangoutPersistedSession,
-} from "./lib/hangoutStorage";
+  type SnapCadePersistedSession,
+} from "./lib/snapCadeStorage";
 
 type AppStage = "landing" | "capture" | "analysing" | "reveal" | "gameplay";
 
@@ -23,7 +23,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [savedSessionPreview, setSavedSessionPreview] = useState<HangoutPersistedSession | null>(null);
+  const [savedSessionPreview, setSavedSessionPreview] = useState<SnapCadePersistedSession | null>(null);
 
   const [streamProgress, setStreamProgress] = useState<{
     step: "init" | "agent1" | "agent2" | "agent3" | "agent4" | "error" | "complete";
@@ -67,8 +67,8 @@ export default function App() {
     [analysisResult, persistSession]
   );
 
-  // Transition: Start Hangout
-  const handleStartHangout = () => {
+  // Transition: Start SnapCade
+  const handleStartSnapCade = () => {
     setStage("capture");
   };
 
@@ -230,7 +230,7 @@ export default function App() {
   };
 
   const handleReset = (skipConfirm = false) => {
-    if (!skipConfirm && !window.confirm("Clear this hangout and delete saved game assets? You'll start from scratch.")) {
+    if (!skipConfirm && !window.confirm("Clear this SnapCade session and delete saved game assets? You'll start from scratch.")) {
       return;
     }
     clearSession();
@@ -243,16 +243,16 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafc] text-slate-800 flex flex-col justify-between" id="hangout-main-frame">
+    <div className="min-h-screen bg-[#fafafc] text-slate-800 flex flex-col justify-between" id="snapcade-main-frame">
       {/* 1. TOP UTILITY HEADER RAIL */}
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 bg-linear-to-tr from-amber-500 to-rose-500 rounded-xl flex items-center justify-center font-black text-white text-base shadow-md">
-              H
+              S
             </div>
             <span className="font-black text-xl tracking-tight text-slate-900 font-mono">
-              Hangout<span className="text-amber-500 font-sans">.</span>
+              SnapCade<span className="text-amber-500 font-sans">.</span>
             </span>
             <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full select-none uppercase tracking-wide">
               Gemini 3.5 Flash
@@ -292,7 +292,7 @@ export default function App() {
               </h1>
 
               <p className="text-slate-600 text-base md:text-lg max-w-xl mx-auto font-medium leading-relaxed">
-                No setup, no downloads! Snap real-time selfies of your friends, permission your neighborhood location, and let Gemini cook up a custom-made HTML5 Canvas multiplayer arcade game tailored to your crew's aesthetics!
+                No setup, no downloads! Snap real-time selfies of your friends, find your current location, and let Gemini cook up a custom-made HTML5 Canvas multiplayer arcade game tailored to your crew's aesthetics!
               </p>
             </div>
 
@@ -327,11 +327,11 @@ export default function App() {
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 type="button"
-                id="start-hangout-landing-trigger"
-                onClick={handleStartHangout}
+                id="start-snapcade-landing-trigger"
+                onClick={handleStartSnapCade}
                 className="bg-linear-to-r from-amber-500 via-rose-500 to-indigo-500 hover:from-amber-600 hover:via-rose-600 hover:to-indigo-600 text-white font-black px-10 py-5 rounded-2xl text-lg transition duration-200 shadow-lg inline-flex items-center gap-2 transform hover:scale-[1.03] active:scale-[0.97]"
               >
-                <Play className="w-5 h-5 fill-white" /> Start a Hangout!
+                <Play className="w-5 h-5 fill-white" /> Start SnapCade!
               </button>
 
               {savedSessionPreview && (
@@ -341,7 +341,7 @@ export default function App() {
                   className="bg-white hover:bg-slate-50 text-slate-800 font-black px-8 py-5 rounded-2xl text-lg transition duration-200 shadow-md border-2 border-indigo-200 inline-flex flex-col items-start gap-0.5 text-left sm:min-w-[240px]"
                 >
                   <span className="inline-flex items-center gap-2 text-indigo-600 text-sm">
-                    <History className="w-4 h-4" /> Resume Last Hangout
+                    <History className="w-4 h-4" /> Resume Last SnapCade
                   </span>
                   <span className="text-base font-extrabold truncate max-w-[220px]">
                     {savedSessionPreview.analysisResult.gameConfig.gameTitle}
@@ -398,7 +398,7 @@ export default function App() {
       {/* 3. COHESIVE FOOTER STATEMENT */}
       <footer className="border-t border-slate-100 bg-white py-4 text-center text-xs text-slate-400 font-medium">
         <p>
-          Hangout — Google I/O Hackathon Demo App powered by Gemini-3.5-Flash
+          SnapCade — Google I/O Hackathon Demo App powered by Gemini-3.5-Flash
         </p>
       </footer>
     </div>

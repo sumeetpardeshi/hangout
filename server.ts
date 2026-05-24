@@ -491,7 +491,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Hangout] Full-stack server running model gemini-3.5-flash on port ${PORT}`);
+    console.log(`[SnapCade] Full-stack server running model gemini-3.5-flash on port ${PORT}`);
   });
 }
 

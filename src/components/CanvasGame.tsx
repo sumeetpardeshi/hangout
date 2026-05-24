@@ -16,7 +16,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import { CustomGameConfig, Participant, SpawnItem } from "../types";
-import { loadUiPrefs, saveUiPrefs } from "../lib/hangoutStorage";
+import { loadUiPrefs, saveUiPrefs } from "../lib/snapCadeStorage";
 
 interface CanvasGameProps {
   gameConfig: CustomGameConfig;
@@ -810,7 +810,7 @@ export default function CanvasGame({
         // Floating retro matrix text tags
         ctx.fillStyle = "rgba(16, 185, 129, 0.15)";
         ctx.font = "bold 11px monospace";
-        ctx.fillText("/** HANGOUT_ENGINE 2.0_IO_SWARM **/", 140, 45);
+        ctx.fillText("/** SNAPCADE_ENGINE 2.0_IO_SWARM **/", 140, 45);
         ctx.fillText(`GPS_LOCK: ${gameConfig.locationContextName || "ONLINE"}`, dimensions.width - 150, 45);
         ctx.fillText("const friend = Group.vibe()", 100, 100);
         ctx.fillText("if (friendly) Play()", dimensions.width - 100, 120);
